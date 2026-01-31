@@ -1,0 +1,107 @@
+{
+  "id": "storybook-personalization-v1",
+  "title": "Story Personalization Quiz",
+  "description": "Answer honestly — there are no right or wrong answers.",
+  "steps": [
+    {
+      "id": "companion",
+      "type": "selection",
+      "title": "Pick a companion 🐾",
+      "description": "If you could have one animal companion in the story, which would you choose?",
+      "options": [
+        "🦊 A clever fox",
+        "🐺 A loyal wolf",
+        "🐉 A mysterious dragon",
+        "🐱 A curious cat",
+        "🦅 A watchful eagle",
+        "🐢 A calm turtle"
+      ]
+    },
+    {
+      "id": "setting",
+      "type": "selection",
+      "title": "Where does the adventure begin? 🗺️",
+      "description": "You’d rather start your journey in…",
+      "options": [
+        "🌊 By the sea",
+        "🏔️ In the mountains",
+        "🌲 A deep forest",
+        "🏜️ A vast desert",
+        "🏙️ A lively city"
+      ]
+    },
+    {
+      "id": "protagonist",
+      "type": "selection",
+      "title": "The Main Character",
+      "description": "What kind of protagonist do you enjoy most?",
+      "options": [
+        "A brave hero who takes action",
+        "A quiet thinker who observes",
+        "A playful trickster",
+        "A kind helper who supports others",
+        "A flawed character who slowly grows"
+      ]
+    },
+    {
+      "id": "moment",
+      "type": "text",
+      "title": "Imagine this moment…",
+      "description": "You are walking alone when something unexpected happens. What is the first thing you notice or feel?",
+      "placeholder": "A short answer is fine (max 240 chars)..."
+    },
+    {
+      "id": "conflict",
+      "type": "selection",
+      "title": "Choose a conflict style ⚔️",
+      "description": "When problems arise, you prefer that they are solved by:",
+      "options": [
+        "Clever planning",
+        "Emotional understanding",
+        "Courage and risk",
+        "Teamwork",
+        "Pure luck or coincidence"
+      ]
+    },
+    {
+      "id": "mood",
+      "type": "selection",
+      "title": "How should it feel? 🎭",
+      "description": "Pick the primary mood for your adventure:",
+      "options": [
+        "Warm and comforting",
+        "Exciting and adventurous",
+        "Thought-provoking",
+        "Light and playful",
+        "Dark and mysterious"
+      ]
+    },
+    {
+      "id": "object",
+      "type": "text",
+      "title": "A small but important detail…",
+      "description": "Name one object that should appear somewhere in the story.",
+      "placeholder": "e.g., a broken watch, a red scarf, an old book..."
+    },
+    {
+      "id": "ending",
+      "type": "selection",
+      "title": "The Grand Finale",
+      "description": "How do you want the story to end?",
+      "options": [
+        "Hopeful and uplifting",
+        "Bittersweet",
+        "Open-ended",
+        "Quiet and reflective",
+        "A surprising twist"
+      ]
+    },
+    {
+      "id": "final_notes",
+      "type": "text",
+      "title": "Final touch ✍️",
+      "description": "Is there anything specific you want to see — or avoid?",
+      "placeholder": "e.g., no violence, include friendship..."
+    }
+  ]
+}
