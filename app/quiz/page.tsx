@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, ChevronRight, Loader2, CheckCircle2 } from "lucide-react";
 import quizData from "@/lib/quiz-data.json";
 import { createClient } from "@/lib/supabase/client"; // Ensure this helper exists
 
@@ -16,6 +16,8 @@ export default function QuizPage() {
   const currentStep = quizData.steps[currentStepIdx];
   const [showSummary, setShowSummary] = useState(false);
 
+  const [progress, setProgress] = useState({ total: 0, completed: 0 });
+  const [storyId, setStoryId] = useState<string | null>(null);
   const handleNext = (value: string) => {
     const updatedAnswers = { ...answers, [currentStep.id]: value };
     setAnswers(updatedAnswers);
@@ -25,41 +27,107 @@ export default function QuizPage() {
       setShowSummary(true);
     }
   };
+  // Realtime Listener
+  useEffect(() => {
+    if (!storyId) return;
 
-const handleGenerate = async () => {
-  if (Object.keys(answers).length === 0) return; // Prevent empty calls
-  
-  setIsGenerating(true);
-  
-  const promptString = Object.entries(answers)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(". ");
+    // Subscribe to changes in the 'pages' table for this story
+    const channel = supabase
+      .channel(`realtime-story-${storyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pages',
+          filter: `story_id=eq.${storyId}`,
+        },
+        (payload) => {
+          // Whenever a page status changes from 'pending' to 'completed' (or image_url is set)
+          if (payload.new.image_url) {
+            setProgress((prev) => ({
+              ...prev,
+              completed: prev.completed + 1,
+            }));
+          }
+        }
+      )
+      .subscribe();
 
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      alert("Please sign in to generate a story.");
-      return;
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [storyId]);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    const promptString = Object.entries(answers).map(([k, v]) => `${k}: ${v}`).join(". ");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("storybook-generation", {
+        body: { prompt: promptString },
+      });
+
+      if (error) throw error;
+
+      // The Edge Function returns the storyId and the count of pages it created
+      setStoryId(data.storyId);
+      setProgress({ total: data.pageCount, completed: 0 });
+      
+    } catch (err) {
+      console.error(err);
+      setIsGenerating(false);
     }
-    // Wrap in a simple object with the 'prompt' key to match your Deno serve logic
-    console.log("Invoking function with prompt:", promptString);
-    const { data, error } = await supabase.functions.invoke("storybook-generation", {
-      body: { prompt: promptString }
-    });
+  };
 
-    if (error) throw error;
-    
-    router.push("/");
-    router.refresh();
-  } catch (err) {
-    console.error("Generation failed:", err);
-    // Log more detail if possible
-  } finally {
-    setIsGenerating(false);
+  // Calculate percentage
+  const percentage = progress.total > 0 
+    ? Math.round((progress.completed / progress.total) * 100) 
+    : 0;
+
+  if (isGenerating) {
+    return (
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+          {!storyId ? (
+            <div className="space-y-4">
+              <Loader2 className="animate-spin mx-auto text-primary" size={48} />
+              <h2 className="text-xl font-bold">AI is writing your story...</h2>
+              <p className="text-sm text-muted-foreground">This takes about 10-15 seconds.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="relative w-32 h-32 mx-auto">
+                 {/* Circular Progress Placeholder */}
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle className="text-slate-100 stroke-current" strokeWidth="10" fill="transparent" r="40" cx="50" cy="50"/>
+                  <circle className="text-primary stroke-current transition-all duration-500 ease-in-out" strokeWidth="10" strokeDasharray={`${percentage * 2.51} 251`} strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50" transform="rotate(-90 50 50)"/>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center font-bold text-xl">
+                  {percentage}%
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold">Painting Illustrations</h2>
+                <p className="text-sm text-muted-foreground">
+                  Generated {progress.completed} of {progress.total} pages
+                </p>
+              </div>
+
+              {percentage === 100 && (
+                <button 
+                  onClick={() => router.push("/protected")}
+                  className="w-full bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 animate-bounce"
+                >
+                  <CheckCircle2 size={20} />
+                  Read Story Now!
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+    );
   }
-};
-
   if (showSummary) {
     return (
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
