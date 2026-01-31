@@ -2,6 +2,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { OpenAI } from "npm:openai@4.8.0"
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') })
 
 const supabase = createClient(
@@ -10,7 +15,12 @@ const supabase = createClient(
 )
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   const { prompt } = await req.json()
+
+
   
   // Refined instruction to ensure clean XML-like tags for easier parsing
   const instruction  = `You are a well-known storybook writer for kids. Your task is to take the given kid's response from a quiz to build a storybook with 10-15 pages. 
@@ -24,7 +34,7 @@ Deno.serve(async (req) => {
 
   // 1. Generate Text (Story Content)
   const chatResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // or gpt-4 for better adherence to format
+      model: "gpt-5-mini", // or gpt-4 for better adherence to format
       messages: [
         { role: "system", content: instruction},
         { role: "user", content: prompt }
@@ -47,7 +57,7 @@ Deno.serve(async (req) => {
 
   if (pagesText.length === 0) {
     console.error("Failed to parse pages. Raw content:", rawContent)
-    return new Response(JSON.stringify({ error: "AI failed to generate valid page format" }), { status: 500 })
+    return new Response(JSON.stringify({ error: "AI failed to generate valid page format" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
   // --- END PARSING LOGIC ---
 
@@ -67,7 +77,7 @@ Deno.serve(async (req) => {
 
   if (storyError) {
     console.error(storyError)
-    return new Response(JSON.stringify({ error: "Failed to save story" }), { status: 500 })
+    return new Response(JSON.stringify({ error: "Failed to save story" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
 
   // 4. Prepare Pages (Children)
@@ -90,7 +100,7 @@ Deno.serve(async (req) => {
 
   if (pagesError) {
     console.error(pagesError)
-    return new Response(JSON.stringify({ error: "Failed to save pages" }), { status: 500 })
+    return new Response(JSON.stringify({ error: "Failed to save pages" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
 
   // --- END DATABASE SAVING ---
@@ -103,6 +113,6 @@ Deno.serve(async (req) => {
     pageCount: pagesText.length,
     message: "Story created. Image generation has started in the background."
   }), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 })
