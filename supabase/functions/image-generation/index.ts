@@ -14,59 +14,58 @@ const supabase = createClient(
 console.info('server started');
 
 Deno.serve(async (req: Request) => {
-  const { record } = await req.json();
-  
+  // Webhooks from Supabase usually send the record in this structure
+  const payload = await req.json();
+  const record = payload.record;
 
-  const imageResponse = await openai.images.generate({
+  // 1. Skip if already processing or completed to prevent loops
+  if (record.status === 'complete' || record.image_url) {
+    return new Response("Already processed", { status: 200 });
+  }
+
+  try {
+    // 2. Generate Image
+    const imageResponse = await openai.images.generate({
       model: "dall-e-3",
-      prompt: record.content_text,
+      prompt: `Children's book illustration, vibrant colors, whimsical style: ${record.content_text}`,
       n: 1,
       size: "1024x1024",
-      response_format: 'url' // Get the temporary URL first
     });
-  const tempImageUrl = imageResponse.data[0].url
+    
+    const tempImageUrl = imageResponse.data[0].url;
+    const imageFetch = await fetch(tempImageUrl!);
+    const imageBlob = await imageFetch.blob();
 
-  // Fetch the image data from the temporary URL
-  const imageFetch = await fetch(tempImageUrl!)
-  const imageBlob = await imageFetch.blob()
+    // 3. Upload to Storage
+    const fileName = `${record.story_id}/${record.id}.png`; // Better file naming structure
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(fileName, imageBlob, { contentType: 'image/png', upsert: true });
 
-  const fileName = `generated-${Date.now()}.png`
-  const { data: uploadData, error: uploadError } = await supabase
-    .storage
-    .from('images') // Ensure this bucket exists in Supabase
-    .upload(fileName, imageBlob, {
-      contentType: 'image/png'
-    })
+    if (uploadError) throw uploadError;
 
-  if (uploadError) {
-    console.error(uploadError)
-    return new Response(JSON.stringify({ error: "Failed to upload image" }), { status: 500 })
-  }
-
-  // 4. Get the Permanent Public URL
-  const { data: { publicUrl } } = supabase
-    .storage
-    .from('images')
-    .getPublicUrl(fileName)
+    // 4. Get Public URL
+    const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
   
-  const {error: pagesError} = await supabase
-    .from('pages')
-    .update({
-      image_url: publicUrl, 
-      status: 'complete'
-    })
-    .eq("id", record.id)
+    // 5. Update Database (This triggers the Frontend Realtime)
+    const { error: updateError } = await supabase
+      .from('pages')
+      .update({
+        image_url: publicUrl, 
+        status: 'complete' // Match this with your frontend check
+      })
+      .eq("id", record.id);
 
-  if(pagesError) { 
-    console.error(pagesError)
-    return new Response(JSON.stringify({ error: "Failed to insert image url to table pages" }), { status: 500 })
+    if (updateError) throw updateError;
+
+    return new Response(JSON.stringify({ success: true, url: publicUrl }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (err) {
+    console.error("Error in image-generation:", err.message);
+    // Important: Update status to 'error' so the frontend doesn't wait forever
+    await supabase.from('pages').update({ status: 'error' }).eq("id", record.id);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-
-  // TODO : Do the final checking with the stories table later.
-
-  return new Response(JSON.stringify({
-    image: publicUrl // This URL is permanent
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  })
 });
