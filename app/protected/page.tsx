@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
-import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
 import { Suspense } from "react";
+import StoryGrid from "@/components/story-grid";
 
 async function UserDetails() {
   const supabase = await createClient();
@@ -13,30 +12,28 @@ async function UserDetails() {
     redirect("/auth/login");
   }
 
-  return JSON.stringify(data.claims, null, 2);
+  const { data: stories } = await supabase
+    .from("stories")
+    .select("*, pages(*)")
+    .eq("uid", data.claims.sub)
+    .order('created_at', { ascending: false });
+
+  if (!stories || stories.length === 0) {
+    return <p className="text-muted-foreground">No stories found yet. Start creating!</p>;
+  }
+
+  // Passing the raw stories array to the client component
+  return <StoryGrid stories={stories} />;
 }
 
 export default function ProtectedPage() {
   return (
-    <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
-          <InfoIcon size="16" strokeWidth={2} />
-          This is a protected page that you can only see as an authenticated
-          user
-        </div>
-      </div>
-      <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
-          <Suspense>
-            <UserDetails />
-          </Suspense>
-        </pre>
-      </div>
-      <div>
-        <h2 className="font-bold text-2xl mb-4">Next steps</h2>
-        <FetchDataSteps />
+    <div className="flex-1 w-full flex flex-col gap-12 p-4 max-w-7xl mx-auto">      
+      <div className="flex flex-col gap-6 items-start w-full">
+        <h2 className="font-bold text-3xl tracking-tight">Your Storybook</h2>
+        <Suspense fallback={<div className="w-full h-48 animate-pulse bg-gray-100 rounded-lg" />}>
+          <UserDetails />
+        </Suspense>
       </div>
     </div>
   );
