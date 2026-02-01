@@ -19,7 +19,8 @@ async function UserDetails() {
     .order('created_at', { ascending: false });
 
   if (!stories || stories.length === 0) {
-    return <p className="text-muted-foreground">No stories found yet. Start creating!</p>;
+    return <div><p className="text-muted-foreground py-8 text-center">No stories found yet. Start creating!</p>
+    <StoryGrid stories={[]} /></div>;
   }
 
   // Passing the raw stories array to the client component
