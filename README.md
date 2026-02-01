@@ -11,6 +11,9 @@
   <a href="#key-design-decisions-and-tradeoffs"><strong>Key design decisions and tradeoffs</strong></a>
 </p>
 <br/>
+## Demo Website
+
+You can go to the demo website [here](https://storybook-generator-mauve.vercel.app/) 
 
 ## Setup Instruction
 
@@ -32,6 +35,8 @@ If you need the secret for testing please contact the author.
    ```
 
    The web application should now be running on [localhost:3000](http://localhost:3000/).
+
+
 
 ## Key design decisions and tradeoffs
 
