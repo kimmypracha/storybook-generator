@@ -5,8 +5,9 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { Suspense } from "react";
 
-export default async function Home() {
+export async function HomeContent() {
   const supabase = await createClient();
 
   // 1. Check if user is already logged in
@@ -65,4 +66,12 @@ export default async function Home() {
       </footer>
     </main>
   );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
+  )
 }
