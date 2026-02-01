@@ -7,10 +7,12 @@
 </p>
 
 <p align="center">
+  <a href="#demo-website"><strong>Demo Website/strong></a> ·
   <a href="#setup-instruction"><strong>Setup Instruction</strong></a> ·
   <a href="#key-design-decisions-and-tradeoffs"><strong>Key design decisions and tradeoffs</strong></a>
 </p>
 <br/>
+
 ## Demo Website
 
 You can go to the demo website [here](https://storybook-generator-mauve.vercel.app/) 
